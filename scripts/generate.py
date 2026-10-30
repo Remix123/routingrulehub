@@ -20,6 +20,7 @@ VAN_DNS_REFERENCE = (
     "Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf"
 )
 PAGES_BASE = "https://remix123.github.io/mihomo-cnip-doh-rules"
+APPLE_RULES_PATH = Path(__file__).resolve().parents[1] / "sources/apple-rules.conf"
 RULE_TYPES = {
     "DOMAIN",
     "DOMAIN-SUFFIX",
@@ -118,11 +119,13 @@ def shadowrocket_full_profile(source_text: str) -> str:
     return profile
 
 
-def shadowrocket_apple_intelligence_profile(source_text: str) -> str:
-    """Build an opt-in profile that proxies Apple's region check."""
+def shadowrocket_apple_intelligence_profile(source_text: str, apple_rules_text: str) -> str:
+    """Build an opt-in profile using the supplied Apple.conf routing rules."""
     profile = shadowrocket_full_profile(source_text)
     profile = set_apple_intelligence_dns(profile)
     profile = remove_skip_proxy_entry(profile, APPLE_LS_SKIP_PROXY)
+    profile = replace_rule_section(profile, apple_rules_text)
+    profile = add_tailscale_rules(profile)
     profile = add_apple_intelligence_rules(profile)
 
     in_general = False
@@ -154,9 +157,9 @@ def shadowrocket_apple_intelligence_profile(source_text: str) -> str:
 
 
 def set_apple_intelligence_dns(profile: str) -> str:
-    """Use direct DoH3 resolvers with non-H3 HTTPS fallback in this profile only."""
+    """Use AliDNS for DIRECT rules and Cloudflare DoH3 for unresolved/IP rules."""
     settings = {
-        "dns-server": "h3://cloudflare-dns.com/dns-query,h3://dns.alidns.com/dns-query",
+        "dns-server": "h3://cloudflare-dns.com/dns-query",
         "direct-dns-server": "h3://dns.alidns.com/dns-query",
         "proxy-dns-server": "h3://dns.alidns.com/dns-query",
         "fallback-dns-server": (
@@ -184,8 +187,9 @@ def set_apple_intelligence_dns(profile: str) -> str:
                 if key == "dns-server" and not inserted_comment:
                     updated.extend(
                         [
-                            "# DNS test: direct Cloudflare and AliDNS DoH3; the resolver list is queried in parallel.",
-                            "# HTTPS fallback disables HTTP/3 with #no-h3.",
+                            "# DIRECT domain rules use AliDNS DoH3; unmatched domains use Cloudflare DoH3 before IP/GEOIP rules.",
+                            "# PROXY domain rules are resolved by the proxy route; proxy-dns-server bootstraps proxy node hostnames.",
+                            "# Shared HTTPS DoH fallback disables HTTP/3 with #no-h3.",
                         ]
                     )
                     inserted_comment = True
@@ -198,6 +202,48 @@ def set_apple_intelligence_dns(profile: str) -> str:
     if missing:
         raise ValueError(f"Apple Intelligence DNS settings missing from [General]: {sorted(missing)}")
     return "\n".join(updated) + "\n"
+
+
+def replace_rule_section(profile: str, source_rules_text: str) -> str:
+    """Replace [Rule] with the complete rule section from the Apple.conf snapshot."""
+    source_lines = source_rules_text.splitlines()
+    try:
+        source_start = next(
+            index for index, line in enumerate(source_lines)
+            if line.strip().lower() == "[rule]"
+        )
+    except StopIteration as exc:
+        raise ValueError("Apple rules source has no [Rule] section") from exc
+    source_end = next(
+        (index for index in range(source_start + 1, len(source_lines))
+         if source_lines[index].strip().startswith("[")),
+        len(source_lines),
+    )
+    rules = source_lines[source_start:source_end]
+    active_rules = [
+        line.strip() for line in rules[1:]
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    if not active_rules or not any(line.upper().startswith("FINAL,") for line in active_rules):
+        raise ValueError("Apple rules source must contain active rules and a FINAL policy")
+    if any(line.upper().startswith(("FINAL,", "MATCH,")) for line in active_rules[:-1]):
+        raise ValueError("Apple rules source has a fallback rule before the end")
+
+    profile_lines = profile.splitlines()
+    try:
+        target_start = next(
+            index for index, line in enumerate(profile_lines)
+            if line.strip().lower() == "[rule]"
+        )
+    except StopIteration as exc:
+        raise ValueError("Generated profile has no [Rule] section") from exc
+    target_end = next(
+        (index for index in range(target_start + 1, len(profile_lines))
+         if profile_lines[index].strip().startswith("[")),
+        len(profile_lines),
+    )
+    merged = profile_lines[:target_start] + rules + profile_lines[target_end:]
+    return "\n".join(merged) + "\n"
 
 
 def remove_skip_proxy_entry(profile: str, entry_to_remove: str) -> str:
@@ -379,11 +425,25 @@ def write_text(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8", newline="\n")
 
 
-def generate(source: Path, output: Path) -> dict[str, object]:
+def generate(
+    source: Path,
+    output: Path,
+    apple_rules: Path = APPLE_RULES_PATH,
+) -> dict[str, object]:
     source_bytes = source.read_bytes()
     source_text = source_bytes.decode("utf-8-sig")
+    apple_rules_bytes = apple_rules.read_bytes()
+    apple_rules_text = apple_rules_bytes.decode("utf-8-sig")
     proxy_rules, direct_rules, final_policy, active_count, build_time = extract_rule_lines(source_text)
     digest = hashlib.sha256(source_bytes).hexdigest()
+    apple_rule_lines = [
+        line.strip() for line in apple_rules_text.splitlines()
+        if line.strip() and not line.strip().startswith(("#", "["))
+    ]
+    apple_remote_rule_set_count = sum(
+        line.split(",", 1)[0].strip().upper() == "RULE-SET"
+        for line in apple_rule_lines
+    )
 
     write_text(output / "mihomo/sr_cnip_proxy.yaml", yaml_payload(proxy_rules))
     write_text(output / "mihomo/sr_cnip_direct.yaml", yaml_payload(direct_rules))
@@ -401,22 +461,26 @@ def generate(source: Path, output: Path) -> dict[str, object]:
         "final_policy": final_policy,
         "shadowrocket_full_profile_source": SOURCE_URL,
         "shadowrocket_apple_intelligence_profile": "config/shadowrocket-apple-intelligence.conf",
+        "shadowrocket_apple_intelligence_rules_source": "sources/apple-rules.conf",
+        "shadowrocket_apple_intelligence_rules_sha256": hashlib.sha256(apple_rules_bytes).hexdigest(),
+        "shadowrocket_apple_intelligence_active_rule_count": len(apple_rule_lines),
+        "shadowrocket_apple_intelligence_remote_rule_set_count": apple_remote_rule_set_count,
         "shadowrocket_maps_profile": "config/shadowrocket-full.conf",
         "shadowrocket_dns_reference": VAN_DNS_REFERENCE,
         "shadowrocket_rules_inline": True,
         "shadowrocket_tailscale_rules_added": 2,
         "shadowrocket_apple_intelligence_dns": {
-            "dns_server": [
-                "h3://cloudflare-dns.com/dns-query",
-                "h3://dns.alidns.com/dns-query",
-            ],
+            "dns_server_unmatched_and_ip_rules": "h3://cloudflare-dns.com/dns-query",
+            "direct_dns_server": "h3://dns.alidns.com/dns-query",
+            "proxy_domain_resolution": "remote via selected proxy route",
             "fallback_dns_server": [
                 "https://cloudflare-dns.com/dns-query#no-h3",
                 "https://dns.alidns.com/dns-query#no-h3",
             ],
         },
         "tailscale_cgnat_removed_from_bypass_tun": "100.64.0.0/10",
-        "license": "CC BY-SA 4.0",
+        "license": "CC BY-SA 4.0 for Johnshall-derived outputs",
+        "additional_rule_sources": "Apple.conf snapshot and remote RULE-SET terms follow their respective sources",
     }
     write_text(output / "metadata.json", json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
 
@@ -451,7 +515,7 @@ rules:
     )
     write_text(
         output / "config/shadowrocket-apple-intelligence.conf",
-        shadowrocket_apple_intelligence_profile(source_text),
+        shadowrocket_apple_intelligence_profile(source_text, apple_rules_text),
     )
 
     escaped_build = html.escape(build_time)
@@ -485,9 +549,9 @@ rules:
     <li><a href="shadowrocket/sr_cnip_proxy.list">代理规则集</a></li>
     <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
   </ul>
-  <p>两个 Shadowrocket 配置均内嵌上游规则并修复 Tailscale 路由。Apple Intelligence 版本使用直连 Cloudflare/AliDNS DoH3，失败时回退到禁用 HTTP/3 的 HTTPS DoH；两条主 DNS 并行查询。该版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测，Apple 地图只保留精确域名直连，导入后请在 iOS/macOS 实测。</p>
-  <p>规则源：<a href="{SOURCE_URL}">Johnshall sr_cnip.conf</a> · DNS参考：<a href="{VAN_DNS_REFERENCE}">Van426326 sr_cnip.conf</a></p>
-  <p><a href="metadata.json">生成元数据</a> · 上游规则遵循 CC BY-SA 4.0。</p>
+  <p>地图优先版内嵌 Johnshall 规则；Apple Intelligence 版合并本地 Apple.conf 内嵌规则和 11 个远程 RULE-SET。直连域名使用 AliDNS DoH3，未命中域名使用 Cloudflare DoH3 后进入 IP/GEOIP 规则判断，代理域名由代理侧解析；DoH3 失败时回退到常规 HTTPS DoH。该版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测，Apple 地图只保留精确域名直连，导入后请在 iOS/macOS 实测。</p>
+  <p>规则源：<a href="{SOURCE_URL}">Johnshall sr_cnip.conf</a> · <a href="https://github.com/Remix123/mihomo-cnip-doh-rules/blob/main/sources/apple-rules.conf">Apple.conf 规则快照</a> · DNS参考：<a href="{VAN_DNS_REFERENCE}">Van426326 sr_cnip.conf</a></p>
+  <p><a href="metadata.json">生成元数据</a> · Johnshall 派生规则遵循 CC BY-SA 4.0；其他规则遵循各自来源条款。</p>
 </body>
 </html>
 """
@@ -498,9 +562,15 @@ rules:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", type=Path, required=True, help="Downloaded Johnshall sr_cnip.conf")
+    parser.add_argument(
+        "--apple-rules",
+        type=Path,
+        default=APPLE_RULES_PATH,
+        help="Apple.conf [Rule] snapshot used by the Apple Intelligence profile",
+    )
     parser.add_argument("--output", type=Path, default=Path("public"))
     args = parser.parse_args()
-    metadata = generate(args.source, args.output)
+    metadata = generate(args.source, args.output, args.apple_rules)
     print(
         "Generated: "
         f"{metadata['proxy_rule_count']} proxy rules, "

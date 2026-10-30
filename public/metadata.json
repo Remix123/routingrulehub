@@ -9,20 +9,24 @@
   "final_policy": "PROXY",
   "shadowrocket_full_profile_source": "https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf",
   "shadowrocket_apple_intelligence_profile": "config/shadowrocket-apple-intelligence.conf",
+  "shadowrocket_apple_intelligence_rules_source": "sources/apple-rules.conf",
+  "shadowrocket_apple_intelligence_rules_sha256": "75db41a89394f2ea8b5baaeef8db6ebcc21a295b2bbf2bd77a47f697e49a6580",
+  "shadowrocket_apple_intelligence_active_rule_count": 646,
+  "shadowrocket_apple_intelligence_remote_rule_set_count": 11,
   "shadowrocket_maps_profile": "config/shadowrocket-full.conf",
   "shadowrocket_dns_reference": "https://raw.githubusercontent.com/Van426326/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf",
   "shadowrocket_rules_inline": true,
   "shadowrocket_tailscale_rules_added": 2,
   "shadowrocket_apple_intelligence_dns": {
-    "dns_server": [
-      "h3://cloudflare-dns.com/dns-query",
-      "h3://dns.alidns.com/dns-query"
-    ],
+    "dns_server_unmatched_and_ip_rules": "h3://cloudflare-dns.com/dns-query",
+    "direct_dns_server": "h3://dns.alidns.com/dns-query",
+    "proxy_domain_resolution": "remote via selected proxy route",
     "fallback_dns_server": [
       "https://cloudflare-dns.com/dns-query#no-h3",
       "https://dns.alidns.com/dns-query#no-h3"
     ]
   },
   "tailscale_cgnat_removed_from_bypass_tun": "100.64.0.0/10",
-  "license": "CC BY-SA 4.0"
+  "license": "CC BY-SA 4.0 for Johnshall-derived outputs",
+  "additional_rule_sources": "Apple.conf snapshot and remote RULE-SET terms follow their respective sources"
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate client rule providers from Johnshall's Shadowrocket sr_cnip.conf."""
+"""Generate Mihomo providers and a DNS-adjusted full Shadowrocket profile from Johnshall."""
 
 from __future__ import annotations
 
@@ -15,6 +15,10 @@ SOURCE_URL = (
     "https://raw.githubusercontent.com/Johnshall/"
     "Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf"
 )
+VAN_DNS_REFERENCE = (
+    "https://raw.githubusercontent.com/Van426326/"
+    "Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf"
+)
 PAGES_BASE = "https://remix123.github.io/mihomo-cnip-doh-rules"
 RULE_TYPES = {
     "DOMAIN",
@@ -24,6 +28,77 @@ RULE_TYPES = {
     "IP-CIDR6",
     "GEOIP",
 }
+SHADOWROCKET_DNS_KEYS = {
+    "dns-server",
+    "direct-dns-server",
+    "fallback-dns-server",
+    "proxy-dns-server",
+    "dns-direct-system",
+    "dns-direct-fallback-proxy",
+    "ipv6",
+    "prefer-ipv6",
+    "hijack-dns",
+}
+
+
+def shadowrocket_full_profile(source_text: str) -> str:
+    """Keep Johnshall's complete profile and inline rules; replace only DNS settings."""
+    lines = source_text.splitlines()
+    general_start = next(
+        (index for index, line in enumerate(lines) if line.strip().lower() == "[general]"),
+        None,
+    )
+    if general_start is None:
+        raise ValueError("Johnshall profile has no [General] section")
+    general_end = next(
+        (index for index in range(general_start + 1, len(lines)) if lines[index].strip().startswith("[")),
+        len(lines),
+    )
+
+    dns_block = [
+        "# DNS: Cloudflare DoH through the selected proxy; AliDNS DoH direct for direct and node-bootstrap lookups.",
+        "# Based on Van426326 DNS behavior and Rabbit-DoH.yaml resolver endpoints.",
+        "dns-server = https://1.1.1.1/dns-query#proxy,https://1.0.0.1/dns-query#proxy",
+        "direct-dns-server = https://223.5.5.5/dns-query,https://223.6.6.6/dns-query",
+        "proxy-dns-server = https://223.5.5.5/dns-query,https://223.6.6.6/dns-query",
+        "fallback-dns-server = https://1.1.1.1/dns-query#proxy,https://1.0.0.1/dns-query#proxy",
+        "dns-direct-system = false",
+        "dns-direct-fallback-proxy = false",
+        "ipv6 = false",
+        "prefer-ipv6 = false",
+        "hijack-dns = 8.8.8.8:53,8.8.4.4:53,1.1.1.1:53,1.0.0.1:53",
+    ]
+
+    insertion_index = general_end
+    for index in range(general_start + 1, general_end):
+        line = lines[index].strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key = line.split("=", 1)[0].strip().lower()
+        if key in SHADOWROCKET_DNS_KEYS:
+            insertion_index = index
+            break
+
+    result: list[str] = []
+    for index, line in enumerate(lines):
+        if index == insertion_index:
+            result.extend(dns_block)
+        if general_start < index < general_end:
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#") and "=" in stripped:
+                key = stripped.split("=", 1)[0].strip().lower()
+                if key in SHADOWROCKET_DNS_KEYS:
+                    continue
+        result.append(line)
+    if insertion_index == len(lines):
+        result.extend(dns_block)
+
+    profile = "\n".join(result) + "\n"
+    if PAGES_BASE in profile:
+        raise ValueError("Full Shadowrocket profile must not depend on GitHub Pages rule URLs")
+    if "[Rule]" not in profile or "RULE-SET," in profile:
+        raise ValueError("Expected Johnshall's inline [Rule] section in the full profile")
+    return profile
 
 
 def extract_rule_lines(text: str) -> tuple[list[str], list[str], str, int, str]:
@@ -119,6 +194,9 @@ def generate(source: Path, output: Path) -> dict[str, object]:
         "proxy_rule_count": len(proxy_rules),
         "direct_rule_count": len(direct_rules),
         "final_policy": final_policy,
+        "shadowrocket_full_profile_source": SOURCE_URL,
+        "shadowrocket_dns_reference": VAN_DNS_REFERENCE,
+        "shadowrocket_rules_inline": True,
         "license": "CC BY-SA 4.0",
     }
     write_text(output / "metadata.json", json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
@@ -148,34 +226,10 @@ rules:
 """
     write_text(output / "config/mihomo-rules.yaml", providers)
 
-    shadowrocket_rules = f"""# Merge these entries into the active Shadowrocket [Rule] section.
-# Place after app-specific rules and before broad country/GEOIP rules.
-RULE-SET,{PAGES_BASE}/shadowrocket/sr_cnip_proxy.list,PROXY
-RULE-SET,{PAGES_BASE}/shadowrocket/sr_cnip_direct.list,DIRECT
-FINAL,PROXY
-"""
-    write_text(output / "config/shadowrocket-rules.conf", shadowrocket_rules)
-
-    shadowrocket_full = f"""# Full Shadowrocket DNS and routing profile for sr_cnip.
-# Add/import your proxy nodes separately in Shadowrocket; this profile uses its PROXY policy.
-# Routing rules follow Johnshall; DNS settings follow Van426326's [General] DNS strategy.
-
-[General]
-dns-server = https://8.8.4.4/dns-query#proxy,https://cloudflare-dns.com/dns-query#proxy
-direct-dns-server = https://doh.pub/dns-query,https://dns.alidns.com/dns-query
-fallback-dns-server = https://1.1.1.1/dns-query#proxy
-dns-direct-system = false
-dns-direct-fallback-proxy = false
-ipv6 = false
-prefer-ipv6 = false
-hijack-dns = 8.8.8.8:53,8.8.4.4:53,1.1.1.1:53
-
-[Rule]
-RULE-SET,{PAGES_BASE}/shadowrocket/sr_cnip_proxy.list,PROXY
-RULE-SET,{PAGES_BASE}/shadowrocket/sr_cnip_direct.list,DIRECT
-FINAL,PROXY
-"""
-    write_text(output / "config/shadowrocket-full.conf", shadowrocket_full)
+    write_text(
+        output / "config/shadowrocket-full.conf",
+        shadowrocket_full_profile(source_text),
+    )
 
     escaped_build = html.escape(build_time)
     index = f"""<!doctype html>
@@ -203,13 +257,12 @@ FINAL,PROXY
   </ul>
   <h2>Shadowrocket</h2>
   <ul>
-    <li><a href="config/shadowrocket-full.conf">完整 DNS 与路由配置</a></li>
+    <li><a href="config/shadowrocket-full.conf">完整配置（内含 Johnshall 全部规则）</a></li>
     <li><a href="shadowrocket/sr_cnip_proxy.list">代理规则集</a></li>
     <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
-    <li><a href="config/shadowrocket-rules.conf">RULE-SET 引用片段</a></li>
   </ul>
-  <p>Shadowrocket 配置沿用 Johnshall 的路由规则，并采用 Van426326 的 DNS 策略；节点需在 Shadowrocket 中单独添加或更新。</p>
-  <p>源文件：<a href="{SOURCE_URL}">Johnshall sr_cnip.conf</a></p>
+  <p>Shadowrocket 完整配置保留 Johnshall 的所有通用项和内联规则，只替换 DNS 配置；DNS 参照 <a href="{VAN_DNS_REFERENCE}">Van426326</a> 与 Rabbit-DoH.yaml。完整配置不依赖 Pages 规则链接。</p>
+  <p>规则源：<a href="{SOURCE_URL}">Johnshall sr_cnip.conf</a> · DNS参考：<a href="{VAN_DNS_REFERENCE}">Van426326 sr_cnip.conf</a></p>
   <p><a href="metadata.json">生成元数据</a> · 上游规则遵循 CC BY-SA 4.0。</p>
 </body>
 </html>

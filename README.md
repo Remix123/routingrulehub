@@ -22,7 +22,7 @@ The DNS snippet follows the split previously selected for Mihomo: `geosite:cn` a
 - [Proxy rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/sr_cnip_proxy.list)
 - [Direct rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/sr_cnip_direct.list)
 
-Both full Shadowrocket profiles are built from Johnshall's complete `sr_cnip.conf`, keep routing rules inline, use the selected AliDNS/Cloudflare DNS split, and include the Tailscale routing fix. They do not depend on GitHub Pages rule links.
+Both full Shadowrocket profiles are built from Johnshall's complete `sr_cnip.conf`, keep routing rules inline, and include the Tailscale routing fix. They do not depend on GitHub Pages rule links. The Maps-priority profile retains its existing DNS settings. The Apple Intelligence profile is being tested with direct Cloudflare and AliDNS DoH3 resolvers, queried in parallel, and conventional HTTPS DoH fallback with HTTP/3 disabled (`#no-h3`). Because the main resolvers run in parallel, either provider can supply the address used by IP/GEOIP rules; check Shadowrocket's connection log if a domestic CDN is still routed through the proxy.
 
 Use the **Maps-priority** profile to preserve the upstream `*.ls.apple.com` `skip-proxy` behavior that was reported to make Apple Maps load domestic Amap data on iOS and macOS ([issue #343](https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/issues/343)). This also sends Apple's `gspe1-ssl.ls.apple.com` region check directly, so Apple Intelligence may detect the local network region ([issue #601](https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/issues/601)).
 

@@ -121,6 +121,7 @@ def shadowrocket_full_profile(source_text: str) -> str:
 def shadowrocket_apple_intelligence_profile(source_text: str) -> str:
     """Build an opt-in profile that proxies Apple's region check."""
     profile = shadowrocket_full_profile(source_text)
+    profile = set_apple_intelligence_dns(profile)
     profile = remove_skip_proxy_entry(profile, APPLE_LS_SKIP_PROXY)
     profile = add_apple_intelligence_rules(profile)
 
@@ -150,6 +151,53 @@ def shadowrocket_apple_intelligence_profile(source_text: str) -> str:
     if not required_rules.issubset(present_rules):
         raise ValueError("Apple Intelligence profile is missing an explicit Apple route")
     return profile
+
+
+def set_apple_intelligence_dns(profile: str) -> str:
+    """Use direct DoH3 resolvers with non-H3 HTTPS fallback in this profile only."""
+    settings = {
+        "dns-server": "h3://cloudflare-dns.com/dns-query,h3://dns.alidns.com/dns-query",
+        "direct-dns-server": "h3://dns.alidns.com/dns-query",
+        "proxy-dns-server": "h3://dns.alidns.com/dns-query",
+        "fallback-dns-server": (
+            "https://cloudflare-dns.com/dns-query#no-h3,"
+            "https://dns.alidns.com/dns-query#no-h3"
+        ),
+    }
+    lines = profile.splitlines()
+    in_general = False
+    updated: list[str] = []
+    seen: set[str] = set()
+    inserted_comment = False
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("["):
+            in_general = stripped.lower() == "[general]"
+            updated.append(line)
+            continue
+        if in_general and stripped.startswith(("# DNS:", "# Based on Van426326")):
+            continue
+        if in_general and "=" in line and not stripped.startswith("#"):
+            key = line.split("=", 1)[0].strip().lower()
+            if key in settings:
+                if key == "dns-server" and not inserted_comment:
+                    updated.extend(
+                        [
+                            "# DNS test: direct Cloudflare and AliDNS DoH3; the resolver list is queried in parallel.",
+                            "# HTTPS fallback disables HTTP/3 with #no-h3.",
+                        ]
+                    )
+                    inserted_comment = True
+                updated.append(f"{line.split('=', 1)[0].rstrip()} = {settings[key]}")
+                seen.add(key)
+                continue
+        updated.append(line)
+
+    missing = set(settings) - seen
+    if missing:
+        raise ValueError(f"Apple Intelligence DNS settings missing from [General]: {sorted(missing)}")
+    return "\n".join(updated) + "\n"
 
 
 def remove_skip_proxy_entry(profile: str, entry_to_remove: str) -> str:
@@ -357,6 +405,16 @@ def generate(source: Path, output: Path) -> dict[str, object]:
         "shadowrocket_dns_reference": VAN_DNS_REFERENCE,
         "shadowrocket_rules_inline": True,
         "shadowrocket_tailscale_rules_added": 2,
+        "shadowrocket_apple_intelligence_dns": {
+            "dns_server": [
+                "h3://cloudflare-dns.com/dns-query",
+                "h3://dns.alidns.com/dns-query",
+            ],
+            "fallback_dns_server": [
+                "https://cloudflare-dns.com/dns-query#no-h3",
+                "https://dns.alidns.com/dns-query#no-h3",
+            ],
+        },
         "tailscale_cgnat_removed_from_bypass_tun": "100.64.0.0/10",
         "license": "CC BY-SA 4.0",
     }
@@ -427,7 +485,7 @@ rules:
     <li><a href="shadowrocket/sr_cnip_proxy.list">代理规则集</a></li>
     <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
   </ul>
-  <p>两个 Shadowrocket 配置均内嵌上游规则、使用 AliDNS/Cloudflare DoH 并修复 Tailscale 路由。Apple Intelligence 版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测；Apple 地图只保留精确域名直连，导入后请在 iOS/macOS 实测地图表现。</p>
+  <p>两个 Shadowrocket 配置均内嵌上游规则并修复 Tailscale 路由。Apple Intelligence 版本使用直连 Cloudflare/AliDNS DoH3，失败时回退到禁用 HTTP/3 的 HTTPS DoH；两条主 DNS 并行查询。该版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测，Apple 地图只保留精确域名直连，导入后请在 iOS/macOS 实测。</p>
   <p>规则源：<a href="{SOURCE_URL}">Johnshall sr_cnip.conf</a> · DNS参考：<a href="{VAN_DNS_REFERENCE}">Van426326 sr_cnip.conf</a></p>
   <p><a href="metadata.json">生成元数据</a> · 上游规则遵循 CC BY-SA 4.0。</p>
 </body>

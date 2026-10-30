@@ -28,7 +28,7 @@
     <li><a href="shadowrocket/sr_cnip_proxy.list">代理规则集</a></li>
     <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
   </ul>
-  <p>两个 Shadowrocket 配置均内嵌上游规则、使用 AliDNS/Cloudflare DoH 并修复 Tailscale 路由。Apple Intelligence 版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测；Apple 地图只保留精确域名直连，导入后请在 iOS/macOS 实测地图表现。</p>
+  <p>两个 Shadowrocket 配置均内嵌上游规则并修复 Tailscale 路由。Apple Intelligence 版本使用直连 Cloudflare/AliDNS DoH3，失败时回退到禁用 HTTP/3 的 HTTPS DoH；两条主 DNS 并行查询。该版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测，Apple 地图只保留精确域名直连，导入后请在 iOS/macOS 实测。</p>
   <p>规则源：<a href="https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf">Johnshall sr_cnip.conf</a> · DNS参考：<a href="https://raw.githubusercontent.com/Van426326/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf">Van426326 sr_cnip.conf</a></p>
   <p><a href="metadata.json">生成元数据</a> · 上游规则遵循 CC BY-SA 4.0。</p>
 </body>

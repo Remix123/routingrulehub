@@ -13,6 +13,16 @@
   "shadowrocket_dns_reference": "https://raw.githubusercontent.com/Van426326/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf",
   "shadowrocket_rules_inline": true,
   "shadowrocket_tailscale_rules_added": 2,
+  "shadowrocket_apple_intelligence_dns": {
+    "dns_server": [
+      "h3://cloudflare-dns.com/dns-query",
+      "h3://dns.alidns.com/dns-query"
+    ],
+    "fallback_dns_server": [
+      "https://cloudflare-dns.com/dns-query#no-h3",
+      "https://dns.alidns.com/dns-query#no-h3"
+    ]
+  },
   "tailscale_cgnat_removed_from_bypass_tun": "100.64.0.0/10",
   "license": "CC BY-SA 4.0"
 }

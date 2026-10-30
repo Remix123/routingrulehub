@@ -25,11 +25,10 @@
   <ul>
     <li><a href="config/shadowrocket-full.conf">地图优先配置（保留 Apple 地图的 ls.apple.com 通配直连）</a></li>
     <li><a href="config/shadowrocket-apple-intelligence.conf">Apple Intelligence 代理优先配置</a></li>
-    <li><a href="shadowrocket/ai-messaging.list">WhatsApp、Telegram 与国际 AI 规则集（可选）</a></li>
     <li><a href="shadowrocket/sr_cnip_proxy.list">代理规则集</a></li>
     <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
   </ul>
-  <p>地图优先版内嵌 Johnshall 规则；Apple Intelligence 版合并本地 Apple.conf 内嵌规则、11 个远程 RULE-SET 和 2 个 DOMAIN-SET。直连域名使用 AliDNS DoH3，未命中域名使用 Cloudflare DoH3 后进入 IP/GEOIP 规则判断，代理域名由代理侧解析；DoH3 失败时回退到常规 HTTPS DoH。国家和 ASN 数据库需在 Shadowrocket 设置的 GeoLite2 数据库页面分别配置。该版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测，Apple 地图只保留精确域名直连，导入后请在 iOS/macOS 实测。</p>
+  <p>Apple Intelligence 版是一份可直接导入的完整配置，合并 Apple.conf、WhatsApp/Telegram/国际 AI 和 Auboray SmartLink 规则，启用 IPv6；保留 Apple 来源的 11 个远程 RULE-SET、增加 Auboray 的 AI/ChinaDaily/GoogleYouTube 3 个 RULE-SET，并保留 2 个 DOMAIN-SET。Auboray AI 集固定走 <code>PROXY</code>，未复制其 <code>[Proxy Group]</code>；直连 DNS 与 Cloudflare DoH3 分流保持本配置原有设置。生成时按下载的 AI.list 去除当前重复匹配；上游变更后会在每日刷新时重新去重。该版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测，Apple 地图只保留精确域名直连；Tailscale CGNAT 保持 <code>TAILSCALE</code> 路由，导入后请在 iOS/macOS 实测。</p>
   <p>规则源：<a href="https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf">Johnshall sr_cnip.conf</a> · <a href="https://github.com/Remix123/mihomo-cnip-doh-rules/blob/main/sources/apple-rules.conf">Apple.conf 规则快照</a> · DNS参考：<a href="https://raw.githubusercontent.com/Van426326/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf">Van426326 sr_cnip.conf</a></p>
   <p><a href="metadata.json">生成元数据</a> · Johnshall 派生规则遵循 CC BY-SA 4.0；其他规则遵循各自来源条款。</p>
 </body>

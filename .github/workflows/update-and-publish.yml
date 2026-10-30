@@ -33,14 +33,29 @@ jobs:
           https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf
           --output "$RUNNER_TEMP/sr_cnip.conf"
 
-      - name: Generate client rule files
+      - name: Generate combined Shadowrocket messaging and AI rule set
+        run: python scripts/generate_ai_messaging.py --output public
+
+      - name: Download Auboray SmartLink source
+        run: >-
+          curl --fail --location --silent --show-error --retry 3
+          https://raw.githubusercontent.com/auboray-cloud/shadowrocket-config/main/Auboray_SmartLink.conf
+          --output "$RUNNER_TEMP/Auboray_SmartLink.conf"
+
+      - name: Download Auboray AI rule set for merge deduplication
+        run: >-
+          curl --fail --location --silent --show-error --retry 3
+          https://raw.githubusercontent.com/auboray-cloud/shadowrocket-config/main/rules/AI.list
+          --output "$RUNNER_TEMP/Auboray_AI.list"
+
+      - name: Generate client rule files and merged Apple Intelligence profile
         run: >-
           python scripts/generate.py
           --source "$RUNNER_TEMP/sr_cnip.conf"
+          --auboray-config "$RUNNER_TEMP/Auboray_SmartLink.conf"
+          --auboray-ai-rules "$RUNNER_TEMP/Auboray_AI.list"
+          --messaging-rules public/shadowrocket/ai-messaging.list
           --output public
-
-      - name: Generate combined Shadowrocket messaging and AI rule set
-        run: python scripts/generate_ai_messaging.py --output public
 
       - name: Commit updated generated files
         run: |

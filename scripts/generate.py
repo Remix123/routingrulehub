@@ -156,6 +156,27 @@ FINAL,PROXY
 """
     write_text(output / "config/shadowrocket-rules.conf", shadowrocket_rules)
 
+    shadowrocket_full = f"""# Full Shadowrocket DNS and routing profile for sr_cnip.
+# Add/import your proxy nodes separately in Shadowrocket; this profile uses its PROXY policy.
+# DNS rule: encrypted DoH for direct/bootstrap lookups; direct-domain failures retry by proxy.
+
+[General]
+dns-server = https://dns.alidns.com/dns-query
+direct-dns-server = https://dns.alidns.com/dns-query
+fallback-dns-server = https://doh.pub/dns-query
+proxy-dns-server = https://dns.alidns.com/dns-query
+dns-direct-system = false
+dns-direct-fallback-proxy = true
+ipv6 = true
+prefer-ipv6 = false
+
+[Rule]
+RULE-SET,{PAGES_BASE}/shadowrocket/sr_cnip_proxy.list,PROXY
+RULE-SET,{PAGES_BASE}/shadowrocket/sr_cnip_direct.list,DIRECT
+FINAL,PROXY
+"""
+    write_text(output / "config/shadowrocket-full.conf", shadowrocket_full)
+
     escaped_build = html.escape(build_time)
     index = f"""<!doctype html>
 <html lang="zh-CN">
@@ -182,10 +203,12 @@ FINAL,PROXY
   </ul>
   <h2>Shadowrocket</h2>
   <ul>
+    <li><a href="config/shadowrocket-full.conf">完整 DNS 与路由配置</a></li>
     <li><a href="shadowrocket/sr_cnip_proxy.list">代理规则集</a></li>
     <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
     <li><a href="config/shadowrocket-rules.conf">RULE-SET 引用片段</a></li>
   </ul>
+  <p>完整 Shadowrocket 配置包含 DNS 与路由规则，不包含代理节点；请在 Shadowrocket 中单独添加或更新节点。</p>
   <p>源文件：<a href="{SOURCE_URL}">Johnshall sr_cnip.conf</a></p>
   <p><a href="metadata.json">生成元数据</a> · 上游规则遵循 CC BY-SA 4.0。</p>
 </body>

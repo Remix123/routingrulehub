@@ -17,11 +17,14 @@ The DNS snippet follows the split previously selected for Mihomo: `geosite:cn` a
 
 ### Shadowrocket
 
+- [Complete DNS and routing profile](https://remix123.github.io/mihomo-cnip-doh-rules/config/shadowrocket-full.conf)
 - [Proxy rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/sr_cnip_proxy.list)
 - [Direct rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/sr_cnip_direct.list)
 - [Shadowrocket rule snippet](https://remix123.github.io/mihomo-cnip-doh-rules/config/shadowrocket-rules.conf)
 
-Add the two `RULE-SET` entries to the active Shadowrocket `[Rule]` section. Keep them after app-specific rules and before a general China/GEOIP rule or `FINAL,PROXY`. These files contain matching rules only; the DNS settings remain in the Shadowrocket profile's `[General]` section.
+The complete profile contains `[General]` DNS settings and `[Rule]` references to the two hosted rule sets. Import it from Shadowrocket's Config page, then use it and select an existing proxy node. It does not contain server credentials or node definitions; add/update your node subscription separately. DNS uses Ali DoH for direct and proxy-node bootstrap lookups, DoH.pub as the encrypted fallback, and enables proxy fallback for failed direct DNS. System DNS fallback is disabled; IPv6 is enabled without preferring IPv6.
+
+If you already maintain a profile, add the two `RULE-SET` entries from the snippet to its `[Rule]` section. Keep them after app-specific rules and before a general China/GEOIP rule or `FINAL,PROXY`. The standalone `.list` files contain matching rules only.
 
 ## Upstream and schedule
 

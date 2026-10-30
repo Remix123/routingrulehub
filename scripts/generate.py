@@ -444,6 +444,10 @@ def generate(
         line.split(",", 1)[0].strip().upper() == "RULE-SET"
         for line in apple_rule_lines
     )
+    apple_domain_set_count = sum(
+        line.split(",", 1)[0].strip().upper() == "DOMAIN-SET"
+        for line in apple_rule_lines
+    )
 
     write_text(output / "mihomo/sr_cnip_proxy.yaml", yaml_payload(proxy_rules))
     write_text(output / "mihomo/sr_cnip_direct.yaml", yaml_payload(direct_rules))
@@ -465,6 +469,13 @@ def generate(
         "shadowrocket_apple_intelligence_rules_sha256": hashlib.sha256(apple_rules_bytes).hexdigest(),
         "shadowrocket_apple_intelligence_active_rule_count": len(apple_rule_lines),
         "shadowrocket_apple_intelligence_remote_rule_set_count": apple_remote_rule_set_count,
+        "shadowrocket_apple_intelligence_domain_set_count": apple_domain_set_count,
+        "shadowrocket_country_mmdb_url": "https://raw.githubusercontent.com/Masaiki/GeoIP2-CN/release/Country.mmdb",
+        "shadowrocket_asn_mmdb_url": "https://raw.githubusercontent.com/P3TERX/GeoLite.mmdb/download/GeoLite2-ASN.mmdb",
+        "shadowrocket_geosite_text_sets": {
+            "china_list": "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/china-list.txt",
+            "gfw": "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/gfw.txt",
+        },
         "shadowrocket_maps_profile": "config/shadowrocket-full.conf",
         "shadowrocket_dns_reference": VAN_DNS_REFERENCE,
         "shadowrocket_rules_inline": True,
@@ -549,7 +560,7 @@ rules:
     <li><a href="shadowrocket/sr_cnip_proxy.list">代理规则集</a></li>
     <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
   </ul>
-  <p>地图优先版内嵌 Johnshall 规则；Apple Intelligence 版合并本地 Apple.conf 内嵌规则和 11 个远程 RULE-SET。直连域名使用 AliDNS DoH3，未命中域名使用 Cloudflare DoH3 后进入 IP/GEOIP 规则判断，代理域名由代理侧解析；DoH3 失败时回退到常规 HTTPS DoH。该版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测，Apple 地图只保留精确域名直连，导入后请在 iOS/macOS 实测。</p>
+  <p>地图优先版内嵌 Johnshall 规则；Apple Intelligence 版合并本地 Apple.conf 内嵌规则、11 个远程 RULE-SET 和 2 个 DOMAIN-SET。直连域名使用 AliDNS DoH3，未命中域名使用 Cloudflare DoH3 后进入 IP/GEOIP 规则判断，代理域名由代理侧解析；DoH3 失败时回退到常规 HTTPS DoH。国家和 ASN 数据库需在 Shadowrocket 设置的 GeoLite2 数据库页面分别配置。该版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测，Apple 地图只保留精确域名直连，导入后请在 iOS/macOS 实测。</p>
   <p>规则源：<a href="{SOURCE_URL}">Johnshall sr_cnip.conf</a> · <a href="https://github.com/Remix123/mihomo-cnip-doh-rules/blob/main/sources/apple-rules.conf">Apple.conf 规则快照</a> · DNS参考：<a href="{VAN_DNS_REFERENCE}">Van426326 sr_cnip.conf</a></p>
   <p><a href="metadata.json">生成元数据</a> · Johnshall 派生规则遵循 CC BY-SA 4.0；其他规则遵循各自来源条款。</p>
 </body>

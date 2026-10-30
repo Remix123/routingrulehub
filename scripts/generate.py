@@ -48,6 +48,7 @@ AUBORAY_AI_RULE_SET = (
     "RULE-SET,https://raw.githubusercontent.com/auboray-cloud/"
     "shadowrocket-config/main/rules/AI.list,PROXY"
 )
+AI_MESSAGING_RULE_SET = f"RULE-SET,{PAGES_BASE}/shadowrocket/ai-messaging.list,PROXY"
 AUBORAY_CONFIG_URL = (
     "https://raw.githubusercontent.com/auboray-cloud/"
     "shadowrocket-config/main/Auboray_SmartLink.conf"
@@ -135,7 +136,7 @@ def shadowrocket_apple_intelligence_profile(
     auboray_ai_rules_text: str = "",
     messaging_rules_text: str = "",
 ) -> tuple[str, dict[str, int]]:
-    """Build the single Apple Intelligence profile with merged rules and IPv6 enabled."""
+    """Build one Apple Intelligence profile with remote rule sets and IPv6 enabled."""
     profile = shadowrocket_full_profile(source_text)
     profile = set_apple_intelligence_dns(profile)
     profile = remove_skip_proxy_entry(profile, APPLE_LS_SKIP_PROXY)
@@ -143,10 +144,11 @@ def shadowrocket_apple_intelligence_profile(
     profile = add_tailscale_rules(profile)
     profile = add_apple_intelligence_rules(profile)
     merge_stats = {
-        "messaging_rules_added": 0,
+        "messaging_rule_set_added": 0,
+        "messaging_source_matcher_count": 0,
         "auboray_rules_added": 0,
         "duplicate_rules_removed": 0,
-        "auboray_ai_overlap_rules_removed": 0,
+        "remote_ai_overlap_rules_removed": 0,
     }
     if auboray_config_text or auboray_ai_rules_text or messaging_rules_text:
         profile, merge_stats = merge_apple_intelligence_rules(
@@ -185,6 +187,8 @@ def shadowrocket_apple_intelligence_profile(
         raise ValueError("Auboray [Proxy Group] must not be copied into the merged profile")
     if auboray_config_text and AUBORAY_AI_RULE_SET.casefold() not in present_rules:
         raise ValueError("Merged profile is missing the requested Auboray AI RULE-SET policy")
+    if messaging_rules_text and AI_MESSAGING_RULE_SET.casefold() not in present_rules:
+        raise ValueError("Merged profile is missing the Pages AI/messaging RULE-SET reference")
     if "ipv6 = true" not in profile.casefold():
         raise ValueError("Apple Intelligence profile must enable IPv6")
     return profile, merge_stats
@@ -327,22 +331,6 @@ def proxy_rule_covers(parent: str, candidate: str) -> bool:
     return normalized_rule_key(parent) == normalized_rule_key(candidate)
 
 
-def prune_proxy_rules(rules: list[str]) -> list[str]:
-    """Remove exact and same-policy suffix/CIDR duplicates from the embedded proxy block."""
-    unique: list[str] = []
-    seen: set[tuple[str, ...]] = set()
-    for rule in rules:
-        key = normalized_rule_key(rule)
-        if key is None or key in seen:
-            continue
-        seen.add(key)
-        unique.append(rule)
-    return [
-        rule for rule in unique
-        if not any(other != rule and proxy_rule_covers(other, rule) for other in unique)
-    ]
-
-
 def deduplicate_rule_section(lines: list[str]) -> tuple[list[str], int]:
     result: list[str] = []
     seen: set[tuple[str, ...]] = set()
@@ -364,7 +352,7 @@ def merge_apple_intelligence_rules(
     auboray_ai_rules_text: str,
     messaging_rules_text: str,
 ) -> tuple[str, dict[str, int]]:
-    """Embed the current messaging/AI rules and Auboray routes into the Apple profile."""
+    """Reference current messaging/AI rules and merge Auboray routes into the Apple profile."""
     lines = profile.splitlines()
     start, end = rule_section_bounds(lines)
     body = lines[start + 1:end]
@@ -373,15 +361,9 @@ def merge_apple_intelligence_rules(
         raise ValueError("Pass the current Auboray AI.list contents so overlapping inline rules can be deduplicated")
     auboray_ai_proxy_rules = [add_policy(line, "PROXY") for line in shadowrocket_rule_lines(auboray_ai_rules_text)] if auboray_ai_rules_text else []
     messaging_candidates = [add_policy(line, "PROXY") for line in shadowrocket_rule_lines(messaging_rules_text)] if messaging_rules_text else []
-    remote_ai_overlap_removed = sum(
-        any(proxy_rule_covers(source_rule, candidate) for source_rule in auboray_ai_proxy_rules)
-        for candidate in messaging_candidates
-    )
-    messaging_proxy_rules = prune_proxy_rules([
-        candidate for candidate in messaging_candidates
-        if not any(proxy_rule_covers(source_rule, candidate) for source_rule in auboray_ai_proxy_rules)
-    ])
-    ai_rule_sets: list[str] = []
+    remote_rule_matchers = [*auboray_ai_proxy_rules, *messaging_candidates]
+    remote_ai_overlap_removed = 0
+    ai_rule_sets: list[str] = [AI_MESSAGING_RULE_SET] if messaging_rules_text else []
     auboray_rules: list[str] = []
     if auboray_config_text:
         ipv6 = next(
@@ -407,8 +389,9 @@ def merge_apple_intelligence_rules(
             if kind == "IP-CIDR" and matcher == "100.64.0.0/10" and policy == "DIRECT":
                 continue
             auboray_rules.append(rule)
-    if auboray_config_text and len(ai_rule_sets) != 1:
-        raise ValueError(f"Expected exactly one Auboray AI RULE-SET, found {len(ai_rule_sets)}")
+    auboray_ai_references = sum(rule.casefold() == AUBORAY_AI_RULE_SET.casefold() for rule in ai_rule_sets)
+    if auboray_config_text and auboray_ai_references != 1:
+        raise ValueError(f"Expected exactly one Auboray AI RULE-SET, found {auboray_ai_references}")
 
     protected = {
         normalized_rule_key(f"DOMAIN,{APPLE_INTELLIGENCE_HOST},PROXY"),
@@ -423,13 +406,13 @@ def merge_apple_intelligence_rules(
     if len(protected_positions) != len(protected):
         raise ValueError("Cannot find all Apple and Tailscale priority rules before merging")
 
-    # The Auboray AI list is a live remote PROXY rule set. Drop current overlapping
-    # inline PROXY entries too; future source changes are refreshed by the daily workflow.
+    # Both remote rule sets route through PROXY. Remove Apple snapshot rules already
+    # covered by either fetched set; their matchers are refreshed by the daily workflow.
     retained_body: list[str] = []
     for line in body:
         fields = parsed_rule(line)
         is_same_proxy_route = len(fields) > 2 and fields[2].upper() == "PROXY"
-        if is_same_proxy_route and any(proxy_rule_covers(source_rule, line) for source_rule in auboray_ai_proxy_rules):
+        if is_same_proxy_route and any(proxy_rule_covers(source_rule, line) for source_rule in remote_rule_matchers):
             remote_ai_overlap_removed += 1
             continue
         retained_body.append(line)
@@ -443,9 +426,8 @@ def merge_apple_intelligence_rules(
     insert_ai_at = max(protected_positions) + 1
     ai_block = [
         "",
-        "# Merged AI, WhatsApp, and Telegram rules use the main PROXY policy.",
+        "# Remote AI, WhatsApp, and Telegram matcher rules use the main PROXY policy.",
         *ai_rule_sets,
-        *messaging_proxy_rules,
     ]
     body[insert_ai_at:insert_ai_at] = ai_block
 
@@ -466,10 +448,11 @@ def merge_apple_intelligence_rules(
     body, removed = deduplicate_rule_section(body)
     merged = lines[:start + 1] + body + lines[end:]
     stats = {
-        "messaging_rules_added": len(messaging_proxy_rules),
-        "auboray_rules_added": len(auboray_rules) + len(ai_rule_sets),
+        "messaging_rule_set_added": int(bool(messaging_rules_text)),
+        "messaging_source_matcher_count": len(messaging_candidates),
+        "auboray_rules_added": len(auboray_rules) + int(bool(auboray_config_text)),
         "duplicate_rules_removed": removed,
-        "auboray_ai_overlap_rules_removed": remote_ai_overlap_removed,
+        "remote_ai_overlap_rules_removed": remote_ai_overlap_removed,
     }
     return "\n".join(merged) + "\n", stats
 
@@ -761,10 +744,12 @@ def generate(
         "shadowrocket_apple_intelligence_domain_set_count": apple_domain_set_count,
         "shadowrocket_apple_intelligence_ipv6_enabled": True,
         "shadowrocket_apple_intelligence_merged_profile_rule_count": apple_profile_rule_count,
-        "shadowrocket_apple_intelligence_messaging_rules_added": merge_stats["messaging_rules_added"],
+        "shadowrocket_apple_intelligence_messaging_rule_set_added": bool(merge_stats["messaging_rule_set_added"]),
+        "shadowrocket_apple_intelligence_messaging_rule_set": AI_MESSAGING_RULE_SET if messaging_rules else None,
+        "shadowrocket_apple_intelligence_messaging_source_matcher_count": merge_stats["messaging_source_matcher_count"],
         "shadowrocket_apple_intelligence_auboray_rules_added": merge_stats["auboray_rules_added"],
         "shadowrocket_apple_intelligence_duplicate_rules_removed": merge_stats["duplicate_rules_removed"],
-        "shadowrocket_apple_intelligence_auboray_ai_overlap_rules_removed": merge_stats["auboray_ai_overlap_rules_removed"],
+        "shadowrocket_apple_intelligence_remote_ai_overlap_rules_removed": merge_stats["remote_ai_overlap_rules_removed"],
         "shadowrocket_apple_intelligence_auboray_config_source": AUBORAY_CONFIG_URL if auboray_config else None,
         "shadowrocket_apple_intelligence_auboray_config_sha256": hashlib.sha256(auboray_config_bytes).hexdigest() if auboray_config else None,
         "shadowrocket_apple_intelligence_auboray_ai_rules_sha256": hashlib.sha256(auboray_ai_rules_bytes).hexdigest() if auboray_ai_rules else None,
@@ -856,7 +841,7 @@ rules:
     <li><a href="shadowrocket/sr_cnip_proxy.list">代理规则集</a></li>
     <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
   </ul>
-  <p>Apple Intelligence 版是一份可直接导入的完整配置，合并 Apple.conf、WhatsApp/Telegram/国际 AI 和 Auboray SmartLink 规则，启用 IPv6；保留 Apple 来源的 {apple_remote_rule_set_count} 个远程 RULE-SET、增加 Auboray 的 AI/ChinaDaily/GoogleYouTube 3 个 RULE-SET，并保留 2 个 DOMAIN-SET。Auboray AI 集固定走 <code>PROXY</code>，未复制其 <code>[Proxy Group]</code>；直连 DNS 与 Cloudflare DoH3 分流保持本配置原有设置。生成时按下载的 AI.list 去除当前重复匹配；上游变更后会在每日刷新时重新去重。该版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测，Apple 地图只保留精确域名直连；Tailscale CGNAT 保持 <code>TAILSCALE</code> 路由，导入后请在 iOS/macOS 实测。</p>
+  <p>Apple Intelligence 版是一份可直接导入的完整配置，启用 IPv6 并通过远程 RULE-SET 引用 WhatsApp/Telegram/国际 AI 与 Auboray 规则；其中 AI/消息规则每天由 GitHub Actions 拉取上游并更新。保留 Apple 来源的 {apple_remote_rule_set_count} 个远程 RULE-SET、Auboray 的 3 个 RULE-SET、Pages AI/消息列表的 1 个 RULE-SET 和 2 个 DOMAIN-SET。相关集合均按 <code>PROXY</code> 策略路由；未复制 Auboray 的 <code>[Proxy Group]</code>。直连 DNS 与 Cloudflare DoH3 分流保持原设置。生成时依据下载的远程规则去除 Apple 内嵌规则的当前重复项；上游变化后会每日重新去重。该版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测，Apple 地图只保留精确域名直连；Tailscale CGNAT 保持 <code>TAILSCALE</code> 路由，导入后请在 iOS/macOS 实测。</p>
   <p>规则源：<a href="{SOURCE_URL}">Johnshall sr_cnip.conf</a> · <a href="https://github.com/Remix123/mihomo-cnip-doh-rules/blob/main/sources/apple-rules.conf">Apple.conf 规则快照</a> · DNS参考：<a href="{VAN_DNS_REFERENCE}">Van426326 sr_cnip.conf</a></p>
   <p><a href="metadata.json">生成元数据</a> · Johnshall 派生规则遵循 CC BY-SA 4.0；其他规则遵循各自来源条款。</p>
 </body>

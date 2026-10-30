@@ -1,0 +1,3 @@
+# Generated from Johnshall sr_cnip.conf; do not edit by hand.
+payload:
+  - "GEOIP,CN"

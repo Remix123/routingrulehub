@@ -1,0 +1,68 @@
+name: Update CNIP rules and publish Pages
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Johnshall builds at 07:00 Beijing; sync at 10:30 Beijing.
+    - cron: "30 2 * * *"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  update-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Download Johnshall source
+        run: >-
+          curl --fail --location --silent --show-error --retry 3
+          https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf
+          --output "$RUNNER_TEMP/sr_cnip.conf"
+
+      - name: Generate client rule files
+        run: >-
+          python scripts/generate.py
+          --source "$RUNNER_TEMP/sr_cnip.conf"
+          --output public
+
+      - name: Commit updated generated files
+        run: |
+          if git diff --quiet -- public; then
+            echo "Generated rules are already current."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add public
+            git commit -m "chore: sync Johnshall sr_cnip rules"
+            git push
+          fi
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: public
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}

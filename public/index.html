@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sr_cnip 客户端规则</title>
+  <style>
+    body { max-width: 760px; margin: 3rem auto; padding: 0 1rem; font: 16px/1.6 system-ui, sans-serif; color: #202124; }
+    h1, h2 { line-height: 1.25; }
+    li { margin: .45rem 0; }
+    code { background: #f2f3f5; padding: .12rem .3rem; }
+  </style>
+</head>
+<body>
+  <h1>sr_cnip 规则</h1>
+  <p>上游构建时间：<code>UTC 2026-10-29 23:03:03</code>；代理规则 390 条，直连规则 1 条。</p>
+  <h2>Mihomo</h2>
+  <ul>
+    <li><a href="mihomo/sr_cnip_proxy.yaml">代理规则 provider</a></li>
+    <li><a href="mihomo/sr_cnip_direct.yaml">直连规则 provider</a></li>
+    <li><a href="config/mihomo-rules.yaml">provider 与路由片段</a></li>
+    <li><a href="config/mihomo-dns.yaml">DNS 分流片段</a></li>
+  </ul>
+  <h2>Shadowrocket</h2>
+  <ul>
+    <li><a href="shadowrocket/sr_cnip_proxy.list">代理规则集</a></li>
+    <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
+    <li><a href="config/shadowrocket-rules.conf">RULE-SET 引用片段</a></li>
+  </ul>
+  <p>源文件：<a href="https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf">Johnshall sr_cnip.conf</a></p>
+  <p><a href="metadata.json">生成元数据</a> · 上游规则遵循 CC BY-SA 4.0。</p>
+</body>
+</html>

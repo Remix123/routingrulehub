@@ -1,0 +1,22 @@
+# Merge these mappings into the existing Mihomo config.
+rule-providers:
+  sr-cnip-proxy:
+    type: http
+    behavior: classical
+    format: yaml
+    url: https://remix123.github.io/mihomo-cnip-doh-rules/mihomo/sr_cnip_proxy.yaml
+    path: ./rule-providers/sr_cnip_proxy.yaml
+    interval: 86400
+  sr-cnip-direct:
+    type: http
+    behavior: classical
+    format: yaml
+    url: https://remix123.github.io/mihomo-cnip-doh-rules/mihomo/sr_cnip_direct.yaml
+    path: ./rule-providers/sr_cnip_direct.yaml
+    interval: 86400
+
+# Put after app-specific rules and before broad country/GEOIP rules.
+rules:
+  - RULE-SET,sr-cnip-proxy,Proxy
+  - RULE-SET,sr-cnip-direct,DIRECT
+  - MATCH,Proxy

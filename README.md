@@ -22,13 +22,13 @@ The DNS snippet follows the split previously selected for Mihomo: `geosite:cn` a
 - [Direct rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/sr_cnip_direct.list)
 - [Shadowrocket rule snippet](https://remix123.github.io/mihomo-cnip-doh-rules/config/shadowrocket-rules.conf)
 
-The complete profile contains `[General]` DNS settings and `[Rule]` references to the two hosted rule sets. Import it from Shadowrocket's Config page, then use it and select an existing proxy node. It does not contain server credentials or node definitions; add/update your node subscription separately. DNS uses Ali DoH for direct and proxy-node bootstrap lookups, DoH.pub as the encrypted fallback, and enables proxy fallback for failed direct DNS. System DNS fallback is disabled; IPv6 is enabled without preferring IPv6.
+The complete profile contains `[General]` DNS settings and `[Rule]` references to the two hosted rule sets. Its routing rules come from Johnshall; its DNS fields follow [Van426326's `sr_cnip.conf`](https://raw.githubusercontent.com/Van426326/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf). Import it from Shadowrocket's Config page, then use it and select an existing proxy node. It does not contain server credentials or node definitions; add/update your node subscription separately. General DNS uses Google and Cloudflare DoH through the proxy; direct rules use DoH.pub and Ali DoH; fallback uses Cloudflare DoH through the proxy. System DNS is disabled, hard-coded DNS to Google/Cloudflare is hijacked, and IPv6 is disabled as in both upstream profiles.
 
 If you already maintain a profile, add the two `RULE-SET` entries from the snippet to its `[Rule]` section. Keep them after app-specific rules and before a general China/GEOIP rule or `FINAL,PROXY`. The standalone `.list` files contain matching rules only.
 
 ## Upstream and schedule
 
-The source is [Johnshall's `sr_cnip.conf`](https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf). GitHub Actions fetches it every day at 10:30 China Standard Time, after Johnshall's scheduled 07:00 China Standard Time build, and can also be run manually from the Actions page. Generated files and metadata are committed only when their contents change, then deployed to GitHub Pages.
+The rule source is [Johnshall's `sr_cnip.conf`](https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf); only the Shadowrocket DNS configuration references [Van426326's `sr_cnip.conf`](https://raw.githubusercontent.com/Van426326/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf). GitHub Actions fetches Johnshall's rules every day at 10:30 China Standard Time, after Johnshall's scheduled 07:00 China Standard Time build, and can also be run manually from the Actions page. Generated files and metadata are committed only when their contents change, then deployed to GitHub Pages.
 
 ## Source attribution and license
 

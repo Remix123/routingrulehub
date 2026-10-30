@@ -158,17 +158,17 @@ FINAL,PROXY
 
     shadowrocket_full = f"""# Full Shadowrocket DNS and routing profile for sr_cnip.
 # Add/import your proxy nodes separately in Shadowrocket; this profile uses its PROXY policy.
-# DNS rule: encrypted DoH for direct/bootstrap lookups; direct-domain failures retry by proxy.
+# Routing rules follow Johnshall; DNS settings follow Van426326's [General] DNS strategy.
 
 [General]
-dns-server = https://dns.alidns.com/dns-query
-direct-dns-server = https://dns.alidns.com/dns-query
-fallback-dns-server = https://doh.pub/dns-query
-proxy-dns-server = https://dns.alidns.com/dns-query
+dns-server = https://8.8.4.4/dns-query#proxy,https://cloudflare-dns.com/dns-query#proxy
+direct-dns-server = https://doh.pub/dns-query,https://dns.alidns.com/dns-query
+fallback-dns-server = https://1.1.1.1/dns-query#proxy
 dns-direct-system = false
-dns-direct-fallback-proxy = true
-ipv6 = true
+dns-direct-fallback-proxy = false
+ipv6 = false
 prefer-ipv6 = false
+hijack-dns = 8.8.8.8:53,8.8.4.4:53,1.1.1.1:53
 
 [Rule]
 RULE-SET,{PAGES_BASE}/shadowrocket/sr_cnip_proxy.list,PROXY
@@ -208,7 +208,7 @@ FINAL,PROXY
     <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
     <li><a href="config/shadowrocket-rules.conf">RULE-SET 引用片段</a></li>
   </ul>
-  <p>完整 Shadowrocket 配置包含 DNS 与路由规则，不包含代理节点；请在 Shadowrocket 中单独添加或更新节点。</p>
+  <p>Shadowrocket 配置沿用 Johnshall 的路由规则，并采用 Van426326 的 DNS 策略；节点需在 Shadowrocket 中单独添加或更新。</p>
   <p>源文件：<a href="{SOURCE_URL}">Johnshall sr_cnip.conf</a></p>
   <p><a href="metadata.json">生成元数据</a> · 上游规则遵循 CC BY-SA 4.0。</p>
 </body>

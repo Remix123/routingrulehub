@@ -8,6 +8,8 @@
   "direct_rule_count": 1,
   "final_policy": "PROXY",
   "shadowrocket_full_profile_source": "https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf",
+  "shadowrocket_apple_intelligence_profile": "config/shadowrocket-apple-intelligence.conf",
+  "shadowrocket_maps_profile": "config/shadowrocket-full.conf",
   "shadowrocket_dns_reference": "https://raw.githubusercontent.com/Van426326/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf",
   "shadowrocket_rules_inline": true,
   "shadowrocket_tailscale_rules_added": 2,

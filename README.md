@@ -17,11 +17,18 @@ The DNS snippet follows the split previously selected for Mihomo: `geosite:cn` a
 
 ### Shadowrocket
 
-- [Complete DNS and routing profile](https://remix123.github.io/mihomo-cnip-doh-rules/config/shadowrocket-full.conf)
+- [Maps-priority full profile](https://remix123.github.io/mihomo-cnip-doh-rules/config/shadowrocket-full.conf)
+- [Apple Intelligence proxy-priority full profile](https://remix123.github.io/mihomo-cnip-doh-rules/config/shadowrocket-apple-intelligence.conf)
 - [Proxy rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/sr_cnip_proxy.list)
 - [Direct rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/sr_cnip_direct.list)
 
-The full Shadowrocket profile is built from Johnshall's complete `sr_cnip.conf`: it preserves the original General options (including `skip-proxy` and `bypass-tun`) and keeps all routing rules inline. It does not use GitHub Pages rule links. DNS uses Van426326's split and the AliDNS/Cloudflare endpoints from Rabbit-DoH.yaml. For Tailscale, the generator removes only `100.64.0.0/10` from `bypass-tun` and places MagicDNS plus Tailscale-CGNAT rules before the upstream rules. This addresses [Johnshall issue #566](https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/issues/566#issuecomment-5639067960), where the bypass route conflicts with Tailscale's route.
+Both full Shadowrocket profiles are built from Johnshall's complete `sr_cnip.conf`, keep routing rules inline, use the selected AliDNS/Cloudflare DNS split, and include the Tailscale routing fix. They do not depend on GitHub Pages rule links.
+
+Use the **Maps-priority** profile to preserve the upstream `*.ls.apple.com` `skip-proxy` behavior that was reported to make Apple Maps load domestic Amap data on iOS and macOS ([issue #343](https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/issues/343)). This also sends Apple's `gspe1-ssl.ls.apple.com` region check directly, so Apple Intelligence may detect the local network region ([issue #601](https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/issues/601)).
+
+Use the **Apple Intelligence proxy-priority** profile to remove that wildcard bypass and explicitly route `gspe1-ssl.ls.apple.com` through `Proxy`. It keeps only `gspe19-cn-ssl.ls.apple.com` as an exact direct Maps rule. The upstream reports that a broader bypass was needed for Mac Maps, so verify Apple Maps on iOS and macOS after importing this profile. These two complete profiles are alternatives; the standalone `.list` files remain upstream routing data and do not contain the profile-specific Apple overrides.
+
+The generator also removes only `100.64.0.0/10` from `bypass-tun` and places MagicDNS plus Tailscale-CGNAT rules before upstream rules. This addresses [Johnshall issue #566](https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/issues/566#issuecomment-5639067960), where the bypass route conflicts with Tailscale's route.
 
 Enable the Tailscale module in Shadowrocket Settings for the `TAILSCALE` policy to work. The module is available from Shadowrocket 2.2.89; by default it handles tailnet traffic and does not use an exit node. If you need advertised subnet routes, enable “Use Tailscale Subnet”; if such a subnet overlaps one of the remaining `bypass-tun` private ranges, remove only the overlapping subnet from `bypass-tun`. The module behavior and route examples are described in the [Shadowrocket Tailscale manual](https://github.com/LOWERTOP/Shadowrocket/wiki).
 

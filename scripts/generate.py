@@ -39,6 +39,9 @@ SHADOWROCKET_DNS_KEYS = {
     "prefer-ipv6",
     "hijack-dns",
 }
+APPLE_LS_SKIP_PROXY = "*.ls.apple.com"
+APPLE_INTELLIGENCE_HOST = "gspe1-ssl.ls.apple.com"
+APPLE_MAPS_HOST = "gspe19-cn-ssl.ls.apple.com"
 
 
 def shadowrocket_full_profile(source_text: str) -> str:
@@ -113,6 +116,104 @@ def shadowrocket_full_profile(source_text: str) -> str:
             if "100.64.0.0/10" in ranges:
                 raise ValueError("Tailscale CGNAT range remains in bypass-tun")
     return profile
+
+
+def shadowrocket_apple_intelligence_profile(source_text: str) -> str:
+    """Build an opt-in profile that proxies Apple's region check."""
+    profile = shadowrocket_full_profile(source_text)
+    profile = remove_skip_proxy_entry(profile, APPLE_LS_SKIP_PROXY)
+    profile = add_apple_intelligence_rules(profile)
+
+    in_general = False
+    for line in profile.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("["):
+            in_general = stripped.lower() == "[general]"
+            continue
+        if in_general and stripped.lower().startswith("skip-proxy") and "=" in stripped:
+            entries = [item.strip().casefold() for item in stripped.split("=", 1)[1].split(",")]
+            if APPLE_LS_SKIP_PROXY.casefold() in entries:
+                raise ValueError("Apple Intelligence profile still bypasses all ls.apple.com hosts")
+
+    required_rules = {
+        f"DOMAIN,{APPLE_INTELLIGENCE_HOST},PROXY".casefold(),
+        f"DOMAIN,{APPLE_MAPS_HOST},DIRECT".casefold(),
+    }
+    rule_start = next(
+        (index for index, line in enumerate(profile.splitlines()) if line.strip().lower() == "[rule]"),
+        None,
+    )
+    if rule_start is None:
+        raise ValueError("Apple Intelligence profile has no [Rule] section")
+    rule_lines = profile.splitlines()[rule_start + 1:]
+    present_rules = {line.strip().split(" #", 1)[0].casefold() for line in rule_lines}
+    if not required_rules.issubset(present_rules):
+        raise ValueError("Apple Intelligence profile is missing an explicit Apple route")
+    return profile
+
+
+def remove_skip_proxy_entry(profile: str, entry_to_remove: str) -> str:
+    """Remove one exact domain or wildcard from [General].skip-proxy."""
+    lines = profile.splitlines()
+    in_general = False
+    updated: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("["):
+            in_general = stripped.lower() == "[general]"
+            updated.append(line)
+            continue
+        if in_general and stripped.lower().startswith("skip-proxy") and "=" in line:
+            prefix, value = line.split("=", 1)
+            entries = [item for item in value.split(",") if item.strip().casefold() != entry_to_remove.casefold()]
+            line = prefix + "=" + ",".join(entries)
+        updated.append(line)
+    return "\n".join(updated) + "\n"
+
+
+def add_apple_intelligence_rules(profile: str) -> str:
+    """Put exact Apple routes before broad/upstream routing rules."""
+    lines = profile.splitlines()
+    try:
+        rule_start = next(index for index, line in enumerate(lines) if line.strip().lower() == "[rule]")
+    except StopIteration as exc:
+        raise ValueError("Johnshall profile has no [Rule] section") from exc
+    rule_end = next(
+        (index for index in range(rule_start + 1, len(lines)) if lines[index].strip().startswith("[")),
+        len(lines),
+    )
+
+    targets = {APPLE_INTELLIGENCE_HOST.casefold(), APPLE_MAPS_HOST.casefold()}
+    kept_lines: list[str] = []
+    for index, line in enumerate(lines):
+        if not rule_start < index < rule_end:
+            kept_lines.append(line)
+            continue
+        route = line.split(" #", 1)[0].strip()
+        if not route or route.startswith("#"):
+            kept_lines.append(line)
+            continue
+        fields = [field.strip() for field in next(csv.reader([route], skipinitialspace=True))]
+        rule_type = fields[0].upper() if fields else ""
+        domain = fields[1].casefold() if len(fields) > 1 else ""
+        policy = fields[2].upper() if len(fields) > 2 else ""
+        is_managed_host = rule_type in {"DOMAIN", "DOMAIN-SUFFIX"} and domain in targets
+        is_broad_direct = (
+            rule_type == "DOMAIN-SUFFIX"
+            and domain == "ls.apple.com"
+            and policy == "DIRECT"
+        )
+        if not is_managed_host and not is_broad_direct:
+            kept_lines.append(line)
+
+    rule_start = next(index for index, line in enumerate(kept_lines) if line.strip().lower() == "[rule]")
+    overrides = [
+        "# Apple Intelligence variant: proxy the region check; keep only the exact Maps hostname direct.",
+        f"DOMAIN,{APPLE_INTELLIGENCE_HOST},Proxy",
+        f"DOMAIN,{APPLE_MAPS_HOST},DIRECT",
+    ]
+    kept_lines[rule_start + 1:rule_start + 1] = overrides
+    return "\n".join(kept_lines) + "\n"
 
 
 def remove_tailscale_cgnat_bypass(profile: str) -> str:
@@ -251,6 +352,8 @@ def generate(source: Path, output: Path) -> dict[str, object]:
         "direct_rule_count": len(direct_rules),
         "final_policy": final_policy,
         "shadowrocket_full_profile_source": SOURCE_URL,
+        "shadowrocket_apple_intelligence_profile": "config/shadowrocket-apple-intelligence.conf",
+        "shadowrocket_maps_profile": "config/shadowrocket-full.conf",
         "shadowrocket_dns_reference": VAN_DNS_REFERENCE,
         "shadowrocket_rules_inline": True,
         "shadowrocket_tailscale_rules_added": 2,
@@ -288,6 +391,10 @@ rules:
         output / "config/shadowrocket-full.conf",
         shadowrocket_full_profile(source_text),
     )
+    write_text(
+        output / "config/shadowrocket-apple-intelligence.conf",
+        shadowrocket_apple_intelligence_profile(source_text),
+    )
 
     escaped_build = html.escape(build_time)
     index = f"""<!doctype html>
@@ -315,11 +422,12 @@ rules:
   </ul>
   <h2>Shadowrocket</h2>
   <ul>
-    <li><a href="config/shadowrocket-full.conf">完整配置（内含 Johnshall 全部规则）</a></li>
+    <li><a href="config/shadowrocket-full.conf">地图优先配置（保留 Apple 地图的 ls.apple.com 通配直连）</a></li>
+    <li><a href="config/shadowrocket-apple-intelligence.conf">Apple Intelligence 代理优先配置</a></li>
     <li><a href="shadowrocket/sr_cnip_proxy.list">代理规则集</a></li>
     <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
   </ul>
-  <p>Shadowrocket 配置保留 Johnshall 的完整通用项与内联规则，按 Van426326 和 Rabbit-DoH.yaml 调整 DNS，并修复 Tailscale 的 100.64.0.0/10 旁路冲突。</p>
+  <p>两个 Shadowrocket 配置均内嵌上游规则、使用 AliDNS/Cloudflare DoH 并修复 Tailscale 路由。Apple Intelligence 版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测；Apple 地图只保留精确域名直连，导入后请在 iOS/macOS 实测地图表现。</p>
   <p>规则源：<a href="{SOURCE_URL}">Johnshall sr_cnip.conf</a> · DNS参考：<a href="{VAN_DNS_REFERENCE}">Van426326 sr_cnip.conf</a></p>
   <p><a href="metadata.json">生成元数据</a> · 上游规则遵循 CC BY-SA 4.0。</p>
 </body>

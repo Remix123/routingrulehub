@@ -1,0 +1,40 @@
+{
+  "name": "Messaging and International AI",
+  "pages_url": "https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/ai-messaging.list",
+  "rule_count": 256,
+  "source_rule_count": 256,
+  "exact_duplicates_removed": 0,
+  "subsumed_rules_removed": 0,
+  "counts": {
+    "whatsapp_domain_rules": 11,
+    "telegram_domain_rules": 21,
+    "telegram_ip_rules": 14,
+    "international_ai_source_rules": 210
+  },
+  "sources": {
+    "whatsapp_domains": "https://raw.githubusercontent.com/v2fly/domain-list-community/master/data/whatsapp",
+    "telegram_domains": "https://raw.githubusercontent.com/v2fly/domain-list-community/master/data/telegram",
+    "ai_global": "https://raw.githubusercontent.com/TannayeJ/ai-vendor-rules/main/generated/quantumultx/all-ai-global.list",
+    "telegram_cidrs": "https://core.telegram.org/resources/cidr.txt"
+  },
+  "source_sha256": {
+    "whatsapp": "62def09a533350c9e5259d1d498ed1da1689ff174f436f51c065260f21f037d2",
+    "telegram": "24a2d026dbf3a09a8ca893420a40adbad70328978df0100d9c63abecdbf01b5d",
+    "ai_global": "f5e558dfc217e3eaa628189fb1f66779281e6b63e8c59dd9237cd724c576ef99",
+    "telegram_cidrs": "3ecd072cedf72eceee6961b18a51e37f905d5ce4a656a5d24cf5fea63e6ec651"
+  },
+  "lossy_conversions": [
+    "HOST-WILDCARD,chatgpt-async-webps-prod-*-*.webpubsub.azure.com,AI => DOMAIN-KEYWORD,chatgpt-async-webps-prod- (keyword approximation; see README)"
+  ],
+  "unsupported_source_rules": [],
+  "notes": [
+    "OpenAI/ChatGPT rules can route Codex traffic using shared domains; Codex is not an independent vendor list.",
+    "The combined rule set sends all matched services through the single policy selected by the RULE-SET line.",
+    "Place the RULE-SET before broader Google, Microsoft, Twitter/X, GEOIP and FINAL rules."
+  ],
+  "licenses": {
+    "v2fly/domain-list-community": "MIT",
+    "TannayeJ/ai-vendor-rules": "MIT; generated domain data is sourced from v2fly/domain-list-community",
+    "Telegram CIDRs": "Telegram official machine-readable network list"
+  }
+}

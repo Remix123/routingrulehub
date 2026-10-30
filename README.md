@@ -21,6 +21,18 @@ The DNS snippet follows the split previously selected for Mihomo: `geosite:cn` a
 - [Apple Intelligence proxy-priority full profile](https://remix123.github.io/mihomo-cnip-doh-rules/config/shadowrocket-apple-intelligence.conf)
 - [Proxy rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/sr_cnip_proxy.list)
 - [Direct rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/sr_cnip_direct.list)
+- [Combined WhatsApp, Telegram, and international AI rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/ai-messaging.list)
+- [Combined rule-set metadata and source hashes](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/ai-messaging.metadata.json)
+
+The combined rule set is a single optional `RULE-SET` for WhatsApp, Telegram, and international AI services. It includes ChatGPT/OpenAI, Claude, Grok, Gemini, Copilot, and other AI vendors from the upstream global AI category. Codex has no separate vendor category in the upstream data; its shared OpenAI/ChatGPT domains are included. Telegram uses its current official CIDR feed as well as v2fly domain-list-community domains. The generator converts the upstream Quantumult X `HOST` rules into Shadowrocket `DOMAIN` rules, removes exact duplicates and rules already covered by broader suffix/CIDR rules, and records source hashes and any lossy conversions in metadata.
+
+Add this line to `[Rule]`, replacing `PROXY` with the policy group you want to use:
+
+```ini
+RULE-SET,https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/ai-messaging.list,PROXY,force-remote-dns
+```
+
+Place it before broader Google, Microsoft, Twitter/X, GEOIP, and FINAL rules. This combined set deliberately sends every matching service through one policy. The one Quantumult X wildcard that Shadowrocket cannot express exactly is converted to a narrow `DOMAIN-KEYWORD` match and recorded in the metadata. Sources: [v2fly/domain-list-community](https://github.com/v2fly/domain-list-community) (MIT), [TannayeJ/ai-vendor-rules](https://github.com/TannayeJ/ai-vendor-rules) (MIT), and [Telegram's official CIDR list](https://core.telegram.org/resources/cidr.txt). The workflow refreshes these sources daily with the other published rules.
 
 The Maps-priority profile is built from Johnshall's complete `sr_cnip.conf`. The Apple Intelligence profile uses the `[Rule]` snapshot from [`sources/apple-rules.conf`](sources/apple-rules.conf), preserving its inline rules, 11 remote `RULE-SET` references, and adding two `DOMAIN-SET` references for geosite-derived domain lists. Both profiles include the Tailscale routing fix. Neither profile depends on GitHub Pages rule links.
 

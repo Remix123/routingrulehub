@@ -18,7 +18,7 @@ The DNS snippet follows the split previously selected for Mihomo: `geosite:cn` a
 ### Shadowrocket
 
 - [Maps-priority full profile](https://remix123.github.io/routingrulehub/config/shadowrocket-full.conf)
-- [Apple Intelligence proxy-priority full profile](https://remix123.github.io/routingrulehub/config/shadowrocket-apple-intelligence.conf)
+- [Apple Intelligence proxy-priority full profile](https://remix123.github.io/routingrulehub/config/shadowrocket-rule.conf)
 - [Proxy rule set](https://remix123.github.io/routingrulehub/shadowrocket/sr_cnip_proxy.list)
 - [Direct rule set](https://remix123.github.io/routingrulehub/shadowrocket/sr_cnip_direct.list)
 

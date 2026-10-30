@@ -735,7 +735,7 @@ def generate(
         "direct_rule_count": len(direct_rules),
         "final_policy": final_policy,
         "shadowrocket_full_profile_source": SOURCE_URL,
-        "shadowrocket_apple_intelligence_profile": "config/shadowrocket-apple-intelligence.conf",
+        "shadowrocket_apple_intelligence_profile": "config/shadowrocket-rule.conf",
         "shadowrocket_apple_intelligence_rules_source": "sources/apple-rules.conf",
         "shadowrocket_apple_intelligence_rules_sha256": hashlib.sha256(apple_rules_bytes).hexdigest(),
         "shadowrocket_apple_intelligence_active_rule_count": len(apple_rule_lines),
@@ -808,7 +808,7 @@ rules:
         output / "config/shadowrocket-full.conf",
         shadowrocket_full_profile(source_text),
     )
-    write_text(output / "config/shadowrocket-apple-intelligence.conf", apple_profile)
+    write_text(output / "config/shadowrocket-rule.conf", apple_profile)
 
     escaped_build = html.escape(build_time)
     index = f"""<!doctype html>
@@ -837,7 +837,7 @@ rules:
   <h2>Shadowrocket</h2>
   <ul>
     <li><a href="config/shadowrocket-full.conf">地图优先配置（保留 Apple 地图的 ls.apple.com 通配直连）</a></li>
-    <li><a href="config/shadowrocket-apple-intelligence.conf">Apple Intelligence 代理优先配置</a></li>
+    <li><a href="config/shadowrocket-rule.conf">Apple Intelligence 代理优先配置</a></li>
     <li><a href="shadowrocket/sr_cnip_proxy.list">代理规则集</a></li>
     <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
   </ul>

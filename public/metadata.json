@@ -8,7 +8,7 @@
   "direct_rule_count": 1,
   "final_policy": "PROXY",
   "shadowrocket_full_profile_source": "https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf",
-  "shadowrocket_apple_intelligence_profile": "config/shadowrocket-apple-intelligence.conf",
+  "shadowrocket_apple_intelligence_profile": "config/shadowrocket-rule.conf",
   "shadowrocket_apple_intelligence_rules_source": "sources/apple-rules.conf",
   "shadowrocket_apple_intelligence_rules_sha256": "2356853d503a5fe46d9eb6f7da1c95a9fd32db47d2a572af3d43a8bc59a58935",
   "shadowrocket_apple_intelligence_active_rule_count": 648,

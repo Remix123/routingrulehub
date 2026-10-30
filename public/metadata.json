@@ -10,5 +10,7 @@
   "shadowrocket_full_profile_source": "https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf",
   "shadowrocket_dns_reference": "https://raw.githubusercontent.com/Van426326/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf",
   "shadowrocket_rules_inline": true,
+  "shadowrocket_tailscale_rules_added": 2,
+  "tailscale_cgnat_removed_from_bypass_tun": "100.64.0.0/10",
   "license": "CC BY-SA 4.0"
 }

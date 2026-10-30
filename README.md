@@ -21,13 +21,17 @@ The DNS snippet follows the split previously selected for Mihomo: `geosite:cn` a
 - [Proxy rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/sr_cnip_proxy.list)
 - [Direct rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/sr_cnip_direct.list)
 
-The full Shadowrocket profile is built from Johnshall's complete `sr_cnip.conf`: it preserves the original General options (including `skip-proxy` and `bypass-tun`) and keeps all routing rules inline. It does not use GitHub Pages rule links. Only DNS-related fields are replaced, using [Van426326's DNS strategy](https://raw.githubusercontent.com/Van426326/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf) and the AliDNS/Cloudflare endpoints from Rabbit-DoH.yaml: Cloudflare DoH through the selected proxy for general/proxy DNS; AliDNS DoH direct for direct rules and proxy-node bootstrap; Cloudflare DoH through the proxy as fallback; system DNS disabled; hard-coded Google/Cloudflare DNS hijacked; IPv6 disabled. Import it from Shadowrocket's Config page and keep/add your proxy nodes separately.
+The full Shadowrocket profile is built from Johnshall's complete `sr_cnip.conf`: it preserves the original General options (including `skip-proxy` and `bypass-tun`) and keeps all routing rules inline. It does not use GitHub Pages rule links. DNS uses Van426326's split and the AliDNS/Cloudflare endpoints from Rabbit-DoH.yaml. For Tailscale, the generator removes only `100.64.0.0/10` from `bypass-tun` and places MagicDNS plus Tailscale-CGNAT rules before the upstream rules. This addresses [Johnshall issue #566](https://github.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/issues/566#issuecomment-5639067960), where the bypass route conflicts with Tailscale's route.
+
+Enable the Tailscale module in Shadowrocket Settings for the `TAILSCALE` policy to work. The module is available from Shadowrocket 2.2.89; by default it handles tailnet traffic and does not use an exit node. If you need advertised subnet routes, enable “Use Tailscale Subnet”; if such a subnet overlaps one of the remaining `bypass-tun` private ranges, remove only the overlapping subnet from `bypass-tun`. The module behavior and route examples are described in the [Shadowrocket Tailscale manual](https://github.com/LOWERTOP/Shadowrocket/wiki).
+
+Import the profile from Shadowrocket's Config page and keep/add your proxy nodes separately.
 
 The standalone `.list` files are optional for clients that support remote rule sets. The complete Shadowrocket profile embeds the full upstream `[Rule]` section and does not depend on Pages rule links.
 
 ## Upstream and schedule
 
-The full Shadowrocket profile and routing rules are fetched from [Johnshall's `sr_cnip.conf`](https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf). Its DNS fields are replaced during generation using [Van426326's `sr_cnip.conf`](https://raw.githubusercontent.com/Van426326/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf) and the AliDNS/Cloudflare resolver split in your `Rabbit-DoH.yaml`. GitHub Actions fetches Johnshall's profile every day at 10:30 China Standard Time and publishes the generated artifacts to Pages.
+The full Shadowrocket profile and routing rules are fetched from [Johnshall's `sr_cnip.conf`](https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf). Generation replaces its DNS fields using [Van426326's `sr_cnip.conf`](https://raw.githubusercontent.com/Van426326/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf) and the AliDNS/Cloudflare resolver split in `Rabbit-DoH.yaml`, removes the Tailscale CGNAT range from `bypass-tun`, and adds two Tailscale route policies. GitHub Actions fetches Johnshall's profile every day at 10:30 China Standard Time and publishes the generated artifacts to Pages.
 
 ## Source attribution and license
 

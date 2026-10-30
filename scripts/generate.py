@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate Mihomo providers and a DNS-adjusted full Shadowrocket profile from Johnshall."""
+"""Generate Mihomo providers and an adapted full Shadowrocket profile from Johnshall."""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ SHADOWROCKET_DNS_KEYS = {
 
 
 def shadowrocket_full_profile(source_text: str) -> str:
-    """Keep Johnshall's complete profile and inline rules; replace only DNS settings."""
+    """Keep Johnshall's full profile, adjust DNS, and make its Tailscale routes work."""
     lines = source_text.splitlines()
     general_start = next(
         (index for index, line in enumerate(lines) if line.strip().lower() == "[general]"),
@@ -94,11 +94,67 @@ def shadowrocket_full_profile(source_text: str) -> str:
         result.extend(dns_block)
 
     profile = "\n".join(result) + "\n"
+    profile = remove_tailscale_cgnat_bypass(profile)
+    profile = add_tailscale_rules(profile)
     if PAGES_BASE in profile:
         raise ValueError("Full Shadowrocket profile must not depend on GitHub Pages rule URLs")
     if "[Rule]" not in profile or "RULE-SET," in profile:
         raise ValueError("Expected Johnshall's inline [Rule] section in the full profile")
+    if "IP-CIDR,100.64.0.0/10,TAILSCALE,no-resolve" not in profile or "DOMAIN-SUFFIX,ts.net,TAILSCALE" not in profile:
+        raise ValueError("Tailscale CGNAT rule missing from the full profile")
+    in_general = False
+    for line in profile.splitlines():
+        if line.strip().startswith("["):
+            in_general = line.strip().lower() == "[general]"
+            continue
+        stripped = line.strip()
+        if in_general and stripped.lower().startswith("bypass-tun") and "=" in stripped:
+            ranges = [part.strip() for part in stripped.split("=", 1)[1].split(",")]
+            if "100.64.0.0/10" in ranges:
+                raise ValueError("Tailscale CGNAT range remains in bypass-tun")
     return profile
+
+
+def remove_tailscale_cgnat_bypass(profile: str) -> str:
+    """Remove only Tailscale's CGNAT range from [General] bypass-tun."""
+    lines = profile.splitlines()
+    in_general = False
+    updated: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("["):
+            in_general = stripped.lower() == "[general]"
+            updated.append(line)
+            continue
+        if in_general and stripped.lower().startswith("bypass-tun") and "=" in line:
+            prefix, value = line.split("=", 1)
+            ranges = [item for item in value.split(",") if item.strip() != "100.64.0.0/10"]
+            line = prefix + "=" + ",".join(ranges)
+        updated.append(line)
+    return "\n".join(updated) + "\n"
+
+
+def add_tailscale_rules(profile: str) -> str:
+    """Route MagicDNS names and literal tailnet IPs to Shadowrocket's Tailscale module."""
+    rules = [
+        "DOMAIN-SUFFIX,ts.net,TAILSCALE",
+        "IP-CIDR,100.64.0.0/10,TAILSCALE,no-resolve",
+    ]
+    lines = profile.splitlines()
+    try:
+        rule_index = next(index for index, line in enumerate(lines) if line.strip().lower() == "[rule]")
+    except StopIteration as exc:
+        raise ValueError("Johnshall profile has no [Rule] section") from exc
+
+    existing = {line.strip().lower() for line in lines[rule_index + 1:]}
+    missing = [rule for rule in rules if rule.lower() not in existing]
+    if not missing:
+        return profile
+    lines[rule_index + 1:rule_index + 1] = [
+        "# Tailscale module routes; enable Tailscale in Shadowrocket settings.",
+        *missing,
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def extract_rule_lines(text: str) -> tuple[list[str], list[str], str, int, str]:
@@ -197,6 +253,8 @@ def generate(source: Path, output: Path) -> dict[str, object]:
         "shadowrocket_full_profile_source": SOURCE_URL,
         "shadowrocket_dns_reference": VAN_DNS_REFERENCE,
         "shadowrocket_rules_inline": True,
+        "shadowrocket_tailscale_rules_added": 2,
+        "tailscale_cgnat_removed_from_bypass_tun": "100.64.0.0/10",
         "license": "CC BY-SA 4.0",
     }
     write_text(output / "metadata.json", json.dumps(metadata, ensure_ascii=False, indent=2) + "\n")
@@ -247,7 +305,7 @@ rules:
 </head>
 <body>
   <h1>sr_cnip 规则</h1>
-  <p>上游构建时间：<code>{escaped_build}</code>；代理规则 {len(proxy_rules)} 条，直连规则 {len(direct_rules)} 条。</p>
+  <p>上游构建时间：<code>{escaped_build}</code>；代理规则 {len(proxy_rules)} 条，直连规则 {len(direct_rules)} 条；Shadowrocket 配置另含 2 条 Tailscale 规则。</p>
   <h2>Mihomo</h2>
   <ul>
     <li><a href="mihomo/sr_cnip_proxy.yaml">代理规则 provider</a></li>
@@ -261,7 +319,7 @@ rules:
     <li><a href="shadowrocket/sr_cnip_proxy.list">代理规则集</a></li>
     <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
   </ul>
-  <p>Shadowrocket 完整配置保留 Johnshall 的所有通用项和内联规则，只替换 DNS 配置；DNS 参照 <a href="{VAN_DNS_REFERENCE}">Van426326</a> 与 Rabbit-DoH.yaml。完整配置不依赖 Pages 规则链接。</p>
+  <p>Shadowrocket 配置保留 Johnshall 的完整通用项与内联规则，按 Van426326 和 Rabbit-DoH.yaml 调整 DNS，并修复 Tailscale 的 100.64.0.0/10 旁路冲突。</p>
   <p>规则源：<a href="{SOURCE_URL}">Johnshall sr_cnip.conf</a> · DNS参考：<a href="{VAN_DNS_REFERENCE}">Van426326 sr_cnip.conf</a></p>
   <p><a href="metadata.json">生成元数据</a> · 上游规则遵循 CC BY-SA 4.0。</p>
 </body>

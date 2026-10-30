@@ -20,7 +20,7 @@ VAN_DNS_REFERENCE = (
     "https://raw.githubusercontent.com/Van426326/"
     "Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf"
 )
-PAGES_BASE = "https://remix123.github.io/mihomo-cnip-doh-rules"
+PAGES_BASE = "https://remix123.github.io/routingrulehub"
 APPLE_RULES_PATH = Path(__file__).resolve().parents[1] / "sources/apple-rules.conf"
 RULE_TYPES = {
     "DOMAIN",
@@ -842,7 +842,7 @@ rules:
     <li><a href="shadowrocket/sr_cnip_direct.list">直连规则集</a></li>
   </ul>
   <p>Apple Intelligence 版是一份可直接导入的完整配置，启用 IPv6 并通过远程 RULE-SET 引用 WhatsApp/Telegram/国际 AI 与 Auboray 规则；其中 AI/消息规则每天由 GitHub Actions 拉取上游并更新。保留 Apple 来源的 {apple_remote_rule_set_count} 个远程 RULE-SET、Auboray 的 3 个 RULE-SET、Pages AI/消息列表的 1 个 RULE-SET 和 2 个 DOMAIN-SET。相关集合均按 <code>PROXY</code> 策略路由；未复制 Auboray 的 <code>[Proxy Group]</code>。直连 DNS 与 Cloudflare DoH3 分流保持原设置。生成时依据下载的远程规则去除 Apple 内嵌规则的当前重复项；上游变化后会每日重新去重。该版本移除了 <code>*.ls.apple.com</code> 绕过并代理地区检测，Apple 地图只保留精确域名直连；Tailscale CGNAT 保持 <code>TAILSCALE</code> 路由，导入后请在 iOS/macOS 实测。</p>
-  <p>规则源：<a href="{SOURCE_URL}">Johnshall sr_cnip.conf</a> · <a href="https://github.com/Remix123/mihomo-cnip-doh-rules/blob/main/sources/apple-rules.conf">Apple.conf 规则快照</a> · DNS参考：<a href="{VAN_DNS_REFERENCE}">Van426326 sr_cnip.conf</a></p>
+  <p>规则源：<a href="{SOURCE_URL}">Johnshall sr_cnip.conf</a> · <a href="https://github.com/Remix123/routingrulehub/blob/main/sources/apple-rules.conf">Apple.conf 规则快照</a> · DNS参考：<a href="{VAN_DNS_REFERENCE}">Van426326 sr_cnip.conf</a></p>
   <p><a href="metadata.json">生成元数据</a> · Johnshall 派生规则遵循 CC BY-SA 4.0；其他规则遵循各自来源条款。</p>
 </body>
 </html>

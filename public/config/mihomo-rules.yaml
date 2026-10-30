@@ -4,14 +4,14 @@ rule-providers:
     type: http
     behavior: classical
     format: yaml
-    url: https://remix123.github.io/mihomo-cnip-doh-rules/mihomo/sr_cnip_proxy.yaml
+    url: https://remix123.github.io/routingrulehub/mihomo/sr_cnip_proxy.yaml
     path: ./rule-providers/sr_cnip_proxy.yaml
     interval: 86400
   sr-cnip-direct:
     type: http
     behavior: classical
     format: yaml
-    url: https://remix123.github.io/mihomo-cnip-doh-rules/mihomo/sr_cnip_direct.yaml
+    url: https://remix123.github.io/routingrulehub/mihomo/sr_cnip_direct.yaml
     path: ./rule-providers/sr_cnip_direct.yaml
     interval: 86400
 

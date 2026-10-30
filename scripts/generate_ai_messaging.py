@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PAGES_BASE = "https://remix123.github.io/mihomo-cnip-doh-rules"
+PAGES_BASE = "https://remix123.github.io/routingrulehub"
 V2FLY_BASE = "https://raw.githubusercontent.com/v2fly/domain-list-community/master/data"
 TANNAYE_AI_URL = (
     "https://raw.githubusercontent.com/TannayeJ/ai-vendor-rules/"

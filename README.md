@@ -6,10 +6,10 @@ This repository follows Johnshall's `sr_cnip.conf` and republishes its routing r
 
 ### Mihomo
 
-- [Proxy rules provider](https://remix123.github.io/mihomo-cnip-doh-rules/mihomo/sr_cnip_proxy.yaml)
-- [Direct rules provider](https://remix123.github.io/mihomo-cnip-doh-rules/mihomo/sr_cnip_direct.yaml)
-- [Rule-provider and rules snippet](https://remix123.github.io/mihomo-cnip-doh-rules/config/mihomo-rules.yaml)
-- [DNS snippet](https://remix123.github.io/mihomo-cnip-doh-rules/config/mihomo-dns.yaml)
+- [Proxy rules provider](https://remix123.github.io/routingrulehub/mihomo/sr_cnip_proxy.yaml)
+- [Direct rules provider](https://remix123.github.io/routingrulehub/mihomo/sr_cnip_direct.yaml)
+- [Rule-provider and rules snippet](https://remix123.github.io/routingrulehub/config/mihomo-rules.yaml)
+- [DNS snippet](https://remix123.github.io/routingrulehub/config/mihomo-dns.yaml)
 
 Add the provider entries to the existing `rule-providers:` section. Put the generated `RULE-SET` entries after app-specific rules and before broader China/GEOIP rules. Keep a single final `MATCH,Proxy`. If the current config already has `GEOIP,CN,DIRECT`, replace it with the generated direct provider entry to avoid duplicate classification.
 
@@ -17,12 +17,12 @@ The DNS snippet follows the split previously selected for Mihomo: `geosite:cn` a
 
 ### Shadowrocket
 
-- [Maps-priority full profile](https://remix123.github.io/mihomo-cnip-doh-rules/config/shadowrocket-full.conf)
-- [Apple Intelligence proxy-priority full profile](https://remix123.github.io/mihomo-cnip-doh-rules/config/shadowrocket-apple-intelligence.conf)
-- [Proxy rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/sr_cnip_proxy.list)
-- [Direct rule set](https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/sr_cnip_direct.list)
+- [Maps-priority full profile](https://remix123.github.io/routingrulehub/config/shadowrocket-full.conf)
+- [Apple Intelligence proxy-priority full profile](https://remix123.github.io/routingrulehub/config/shadowrocket-apple-intelligence.conf)
+- [Proxy rule set](https://remix123.github.io/routingrulehub/shadowrocket/sr_cnip_proxy.list)
+- [Direct rule set](https://remix123.github.io/routingrulehub/shadowrocket/sr_cnip_direct.list)
 
-The Apple Intelligence profile is the single merged config to import for this setup. It references the daily generated WhatsApp, Telegram, and international AI list with `RULE-SET,https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/ai-messaging.list,PROXY`, adds Auboray SmartLink's `[Rule]` routes, enables IPv6, and retains Apple's existing DNS split and Tailscale handling. It also contains the exact Auboray AI reference `RULE-SET,https://raw.githubusercontent.com/auboray-cloud/shadowrocket-config/main/rules/AI.list,PROXY`; Auboray's `[Proxy Group]` is omitted. Exact duplicates and current matcher overlaps with these fetched lists are removed from the Apple inline rules during generation. The merge skips Auboray's broad `DOMAIN-SUFFIX,ls.apple.com,DIRECT` and `IP-CIDR,100.64.0.0/10,DIRECT,no-resolve` because they conflict with the profile's Apple Intelligence and Tailscale routes. The two remote AI lists may themselves overlap; they use the same `PROXY` policy, and their upstreams update independently.
+The Apple Intelligence profile is the single merged config to import for this setup. It references the daily generated WhatsApp, Telegram, and international AI list with `RULE-SET,https://remix123.github.io/routingrulehub/shadowrocket/ai-messaging.list,PROXY`, adds Auboray SmartLink's `[Rule]` routes, enables IPv6, and retains Apple's existing DNS split and Tailscale handling. It also contains the exact Auboray AI reference `RULE-SET,https://raw.githubusercontent.com/auboray-cloud/shadowrocket-config/main/rules/AI.list,PROXY`; Auboray's `[Proxy Group]` is omitted. Exact duplicates and current matcher overlaps with these fetched lists are removed from the Apple inline rules during generation. The merge skips Auboray's broad `DOMAIN-SUFFIX,ls.apple.com,DIRECT` and `IP-CIDR,100.64.0.0/10,DIRECT,no-resolve` because they conflict with the profile's Apple Intelligence and Tailscale routes. The two remote AI lists may themselves overlap; they use the same `PROXY` policy, and their upstreams update independently.
 
 The referenced WhatsApp, Telegram, and international AI rule set is generated from [v2fly/domain-list-community](https://github.com/v2fly/domain-list-community) (MIT), [TannayeJ/ai-vendor-rules](https://github.com/TannayeJ/ai-vendor-rules) (MIT), and [Telegram's official CIDR list](https://core.telegram.org/resources/cidr.txt). Codex uses the shared OpenAI/ChatGPT rules because the upstream source has no separate Codex category. The workflow refreshes these inputs and the Auboray configuration daily.
 

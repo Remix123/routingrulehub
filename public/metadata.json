@@ -18,7 +18,7 @@
   "shadowrocket_apple_intelligence_ipv6_enabled": true,
   "shadowrocket_apple_intelligence_merged_profile_rule_count": 670,
   "shadowrocket_apple_intelligence_messaging_rule_set_added": true,
-  "shadowrocket_apple_intelligence_messaging_rule_set": "RULE-SET,https://remix123.github.io/mihomo-cnip-doh-rules/shadowrocket/ai-messaging.list,PROXY",
+  "shadowrocket_apple_intelligence_messaging_rule_set": "RULE-SET,https://remix123.github.io/routingrulehub/shadowrocket/ai-messaging.list,PROXY",
   "shadowrocket_apple_intelligence_messaging_source_matcher_count": 256,
   "shadowrocket_apple_intelligence_auboray_rules_added": 99,
   "shadowrocket_apple_intelligence_duplicate_rules_removed": 29,

@@ -1,15 +1,15 @@
 {
   "name": "Messaging and International AI",
   "pages_url": "https://remix123.github.io/routingrulehub/shadowrocket/ai-messaging.list",
-  "rule_count": 256,
-  "source_rule_count": 256,
+  "rule_count": 258,
+  "source_rule_count": 258,
   "exact_duplicates_removed": 0,
   "subsumed_rules_removed": 0,
   "counts": {
     "whatsapp_domain_rules": 11,
     "telegram_domain_rules": 21,
     "telegram_ip_rules": 14,
-    "international_ai_source_rules": 210
+    "international_ai_source_rules": 212
   },
   "sources": {
     "whatsapp_domains": "https://raw.githubusercontent.com/v2fly/domain-list-community/master/data/whatsapp",
@@ -20,7 +20,7 @@
   "source_sha256": {
     "whatsapp": "62def09a533350c9e5259d1d498ed1da1689ff174f436f51c065260f21f037d2",
     "telegram": "24a2d026dbf3a09a8ca893420a40adbad70328978df0100d9c63abecdbf01b5d",
-    "ai_global": "051d8138de90132b184c2acff010bd3b836a2ebafb8e16bdc8f63fc69ffec75d",
+    "ai_global": "bd1dc1b9652c19a68c16e2489a1812c00b271285b25aed5c85d5930812797f44",
     "telegram_cidrs": "3ecd072cedf72eceee6961b18a51e37f905d5ce4a656a5d24cf5fea63e6ec651"
   },
   "lossy_conversions": [

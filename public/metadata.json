@@ -1,8 +1,8 @@
 {
   "profile": "sr_cnip",
   "source": "https://raw.githubusercontent.com/Johnshall/Shadowrocket-ADBlock-Rules-Forever/release/sr_cnip.conf",
-  "source_build_time_utc": "UTC 2026-11-23 08:32:09",
-  "source_sha256": "0aee24f2bbfcf804fc5787ec45fecb667be6badc83b0172aaecb81005acfb1c7",
+  "source_build_time_utc": "UTC 2026-11-23 23:03:05",
+  "source_sha256": "5a1b0a2c1b86f9d1dab91cbf7bab5ac2d7d6a055b3b2babb88fcc310f4d6e370",
   "source_active_rule_count": 392,
   "proxy_rule_count": 390,
   "direct_rule_count": 1,
